@@ -8,6 +8,8 @@
   --color-primary: hsl(0, 60%, 50%);
   --color-secondary: hsl(0, 60%, 10%);
   --color-base: hsl(0, 60%, 5%);
+  --color-terrain: hsl(118, 21%, 28%);
+  --color-sim: hsl(180, 51%, 54%);
 }
 
 body {
@@ -22,5 +24,8 @@ body {
 canvas#game {
   width: 512px;
   height: 512px;
-  background: var(--color-secondary);
+  background: var(--color-terrain);
+  box-shadow: inset 0 0 12px 0 #000,
+    0 0 4px 4px var(--color-secondary),
+    4px 4px 12px 4px #000;
 }
