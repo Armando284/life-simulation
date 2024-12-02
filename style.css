@@ -4,6 +4,23 @@
   box-sizing: border-box;
 }
 
+:root {
+  --color-primary: hsl(0, 60%, 50%);
+  --color-secondary: hsl(0, 60%, 10%);
+  --color-base: hsl(0, 60%, 5%);
+}
+
 body {
-  background: #333;
+  width: 100%;
+  min-height: 100dvh;
+  background: var(--color-base);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+canvas#game {
+  width: 512px;
+  height: 512px;
+  background: var(--color-secondary);
 }
