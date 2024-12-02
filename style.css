@@ -29,3 +29,19 @@ canvas#game {
     0 0 4px 4px var(--color-secondary),
     4px 4px 12px 4px #000;
 }
+
+.button-group {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+button {
+  min-width: 96px;
+  height: 44px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  outline: none;
+}
