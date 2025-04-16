@@ -10,9 +10,14 @@ canvas.width = config.canvas.width
 canvas.height = config.canvas.height
 
 const ctx = canvas.getContext('2d')
-ctx.fillStyle = config.sim.baseColor
-ctx.fillRect(50, 50, config.sim.width, config.sim.height)
+const sims = []
 
+function start() {
+  ctx.clearRect(0, 0, config.canvas.width, config.canvas.height)
+  sims.length = 0
+  sims.push(new Sim({ ctx, x: 50, y: 50 }))
+}
+start()
 //#region Update
 let timerId
 
@@ -22,11 +27,10 @@ $play.onclick = () => {
     clearInterval(timerId)
   }
   timerId = setInterval(() => {
-    ctx.clearRect(50, 50, 20, 20)
-    setTimeout(() => {
-      ctx.fillRect(50, 50, 20, 20)
-    }, 500);
-  }, 1000);
+    sims.forEach((sim) =>
+      sim.down()
+    )
+  }, 150);
 }
 //#endregion
 
@@ -34,5 +38,6 @@ $play.onclick = () => {
 const $stop = $('#button-stop')
 $stop.onclick = () => {
   clearInterval(timerId)
+  start()
 }
 //#endregion
