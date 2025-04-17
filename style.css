@@ -17,15 +17,29 @@ body {
   min-height: 100dvh;
   background: var(--color-base);
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
 }
 
-canvas#game {
-  width: 512px;
-  height: 512px;
+main {
+  flex: 1;
+}
+
+canvas#simulationCanvas {
+  width: 100%;
+  height: 100dvh;
   background: var(--color-terrain);
-  border: 1px solid var(--color-secondary);
+  outline: 1px solid var(--color-secondary);
+}
+
+aside {
+  width: 256px;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  margin-left: 1px;
+  gap: 20px;
 }
 
 .button-group {
@@ -42,4 +56,44 @@ button {
   padding: 4px 8px;
   border-radius: 4px;
   outline: none;
+}
+
+.simulation-controls {
+  padding: 10px;
+  background: #f0f0f0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: start;
+  flex-wrap: wrap;
+}
+
+.simulation-controls button {
+  padding: 8px 15px;
+  cursor: pointer;
+}
+
+.speed-control {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  gap: 10px;
+}
+
+#pauseBtn.clicked {
+  background: rgba(255, 0, 0, .3);
+}
+
+#speedSlider {
+  width: 150px;
+}
+
+section.information {
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  align-items: start;
+  gap: 10px;
+  padding: 10px;
+  font-size: 18px;
 }
