@@ -1,9 +1,7 @@
 'use strict'
-import { $ } from "./utils.js"
 
 export const config = {
-  canvas: {
-    width: 512,
-    height: 512
-  }
+  simulationSpeedms: 600,
+  isPaused: false,
+  frameRequestId: null
 } 
