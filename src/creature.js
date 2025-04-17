@@ -1,48 +1,68 @@
 import NeuralNetwork from "./neural_network.js";
 import { colorSmallChange, randomColor } from "./utils.js";
 
-const DEBUG_MODE = true
+// Debug flag for development features
+const DEBUG_MODE = true;
 
-
+/**
+ * Represents a creature in the simulation with neural network brain
+ */
 class Creature {
+  /**
+   * Creates a new Creature instance
+   * @param {number} x - Initial x position
+   * @param {number} y - Initial y position
+   * @param {CanvasRenderingContext2D} ctx - Canvas rendering context
+   * @param {number} worldWidth - Width of the simulation world
+   * @param {number} worldHeight - Height of the simulation world
+   * @param {string} color - Base color of the creature
+   */
   constructor(x, y, ctx, worldWidth, worldHeight, color) {
     this.position = { x, y };
-    this.initialPos = { x, y }
-    this.velocity = { x: 0, y: 0 }; // Ahora tenemos velocidad
+    this.initialPos = { x, y };
+    this.velocity = { x: 0, y: 0 }; // Current velocity vector
     this.ctx = ctx;
-    this.size = 4;
+    this.size = 10; // Visual size and collision radius base
     this.color = color;
-    this.speed = 2;
+    this.speed = 2; // Movement speed
     this.worldWidth = worldWidth;
     this.worldHeight = worldHeight;
 
-    // Ángulo de orientación (en radianes)
-    this.angle = 0; // 0 = mira hacia arriba (como antes)
+    // Orientation angle in radians (0 = facing up)
+    this.angle = 0;
     this.collisionRadius = this.size * 0.8;
 
-    // Red neuronal (1 input, 4 outputs)
+    // Neural network (1 input, [200, 200] hidden layers, 4 outputs)
     this.brain = new NeuralNetwork([1, 200, 200, 4]);
   }
 
+  /**
+   * Updates creature state including position, collisions and drawing
+   * @param {Creature[]} obstacles - Array of other creatures to consider
+   */
   update(obstacles = []) {
-    // 1. Actualizar posición previa (para resolver colisiones)
+    // 1. Store previous position for collision resolution
     this.previousPosition = { ...this.position };
 
-    // 2. Obtener input y mover (como antes)
+    // 2. Get neural network input and process movement
     const input = this.getFrontDistance(obstacles);
     const outputs = this.brain.brain([input]);
     this.move(outputs);
 
-    // 3. Verificar colisiones con otras criaturas
+    // 3. Handle collisions with other creatures
     this.handleCollisions(obstacles);
 
-    // 4. Actualizar ángulo y dibujar
+    // 4. Update orientation and draw
     if (this.velocity.x !== 0 || this.velocity.y !== 0) {
       this.angle = Math.atan2(this.velocity.y, this.velocity.x) + Math.PI / 2;
     }
     this.draw();
   }
 
+  /**
+   * Handles collisions with other creatures and world boundaries
+   * @param {Creature[]} creatures - Array of other creatures
+   */
   handleCollisions(creatures) {
     for (const other of creatures) {
       if (other === this) continue;
@@ -51,21 +71,21 @@ class Creature {
       const dy = other.position.y - this.position.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
 
-      // Distancia mínima para considerar colisión
+      // Minimum distance before collision occurs
       const minDistance = this.collisionRadius + other.collisionRadius;
 
       if (distance < minDistance) {
-        // Resolver colisión (empujar)
+        // Resolve collision (push apart)
         const angle = Math.atan2(dy, dx);
         const overlap = minDistance - distance;
 
-        // Mover ambas criaturas (50% de responsabilidad cada una)
+        // Move both creatures (50% responsibility each)
         this.position.x -= Math.cos(angle) * overlap * 0.5;
         this.position.y -= Math.sin(angle) * overlap * 0.5;
         other.position.x += Math.cos(angle) * overlap * 0.5;
         other.position.y += Math.sin(angle) * overlap * 0.5;
 
-        // Aplicar efecto de "rebote" modificando velocidades
+        // Apply bounce effect by modifying velocities
         const damping = 0.7;
         this.velocity.x = -Math.cos(angle) * this.speed * damping;
         this.velocity.y = -Math.sin(angle) * this.speed * damping;
@@ -74,25 +94,34 @@ class Creature {
       }
     }
 
-    // Mantener dentro de los bordes (colisión con paredes)
-    this.position.x = Math.max(this.collisionRadius,
-      Math.min(this.worldWidth - this.collisionRadius, this.position.x));
-    this.position.y = Math.max(this.collisionRadius,
-      Math.min(this.worldHeight - this.collisionRadius, this.position.y));
+    // Keep within world boundaries (wall collisions)
+    this.position.x = Math.max(
+      this.collisionRadius,
+      Math.min(this.worldWidth - this.collisionRadius, this.position.x)
+    );
+    this.position.y = Math.max(
+      this.collisionRadius,
+      Math.min(this.worldHeight - this.collisionRadius, this.position.y)
+    );
   }
 
+  /**
+   * Calculates distance to nearest obstacle in front of the creature
+   * @param {Creature[]} obstacles - Array of other creatures
+   * @returns {number} Normalized distance (0 = no obstacle, 1 = touching)
+   */
   getFrontDistance(obstacles) {
     const sensorLength = this.size * 3;
     const frontX = this.position.x + Math.cos(this.angle - Math.PI / 2) * sensorLength;
     const frontY = this.position.y + Math.sin(this.angle - Math.PI / 2) * sensorLength;
 
-    // Verificar bordes primero
+    // Check world boundaries first
     if (frontX <= 0 || frontX >= this.worldWidth ||
       frontY <= 0 || frontY >= this.worldHeight) {
       return 1;
     }
 
-    // Verificar otras criaturas
+    // Check other creatures
     let closestDistance = Infinity;
 
     for (const obstacle of obstacles) {
@@ -102,13 +131,13 @@ class Creature {
       const dy = obstacle.position.y - this.position.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
 
-      // Ángulo hacia el obstáculo
+      // Angle to obstacle
       const angleToObstacle = Math.atan2(dy, dx);
       const angleDiff = Math.abs(this.angle - angleToObstacle);
 
-      // Solo considerar obstáculos en el frente (60° cono de visión)
+      // Only consider obstacles in front (60° vision cone)
       if (angleDiff < Math.PI / 3 && distance < sensorLength) {
-        // Distancia real considerando radios
+        // Real distance accounting for sizes
         const realDistance = distance - (this.size + obstacle.size);
         if (realDistance < closestDistance) {
           closestDistance = realDistance;
@@ -116,20 +145,24 @@ class Creature {
       }
     }
 
-    // Normalizar valor (0 = nada, 1 = contacto)
+    // Normalize value (0 = nothing, 1 = touching)
     if (closestDistance !== Infinity) {
       return 1 - Math.min(1, closestDistance / sensorLength);
     }
     return 0;
   }
 
+  /**
+   * Moves the creature based on neural network outputs
+   * @param {number[]} outputs - Neural network output array [up, down, left, right]
+   */
   move(outputs) {
     const [up, down, left, right] = outputs;
 
-    // Resetear velocidad
+    // Reset velocity
     this.velocity = { x: 0, y: 0 };
 
-    // Determinar dirección basada en outputs
+    // Determine direction based on strongest output
     if (up === Math.max(up, down, left, right)) {
       this.velocity.y = -this.speed;
     } else if (down === Math.max(up, down, left, right)) {
@@ -140,25 +173,32 @@ class Creature {
       this.velocity.x = this.speed;
     }
 
-    // Actualizar posición con límites
-    this.position.x = Math.max(this.size,
-      Math.min(this.worldWidth - this.size, this.position.x + this.velocity.x));
-    this.position.y = Math.max(this.size,
-      Math.min(this.worldHeight - this.size, this.position.y + this.velocity.y));
+    // Update position with world boundaries
+    this.position.x = Math.max(
+      this.size,
+      Math.min(this.worldWidth - this.size, this.position.x + this.velocity.x)
+    );
+    this.position.y = Math.max(
+      this.size,
+      Math.min(this.worldHeight - this.size, this.position.y + this.velocity.y)
+    );
   }
 
+  /**
+   * Draws the creature on the canvas
+   */
   draw() {
     this.ctx.save();
     this.ctx.translate(this.position.x, this.position.y);
     this.ctx.rotate(this.angle);
 
-    // Cuerpo
+    // Draw body (circle)
     this.ctx.fillStyle = this.color;
     this.ctx.beginPath();
     this.ctx.arc(0, 0, this.size, 0, Math.PI * 2);
     this.ctx.fill();
 
-    // Indicador frontal (triángulo)
+    // Draw front indicator (triangle)
     this.ctx.fillStyle = '#e74c3c';
     this.ctx.beginPath();
     this.ctx.moveTo(0, -this.size);
@@ -169,7 +209,7 @@ class Creature {
 
     this.ctx.restore();
 
-    // Dibujar sensor frontal (debug)
+    // Draw front sensor (debug mode only)
     if (DEBUG_MODE) {
       this.ctx.strokeStyle = 'rgba(255, 0, 0, 0.3)';
       this.ctx.beginPath();
@@ -181,8 +221,11 @@ class Creature {
     }
   }
 
+  /**
+   * Creates a clone of this creature with optional mutation
+   * @returns {Creature} A new creature instance
+   */
   clone() {
-    //console.log(this.brain.toString())
     const clone = new Creature(
       this.position.x,
       this.position.y,
@@ -193,26 +236,29 @@ class Creature {
     );
     clone.brain = this.brain.clone();
 
-    // 30% de probabilidad de mutación al clonar
+    // 6% chance of mutation when cloning
     if (Math.random() < 0.06) {
-      clone.mutate()
+      clone.mutate();
     }
 
+    // Inherit initial position
     clone.initialPos = {
       x: this.initialPos.x,
       y: this.initialPos.y
-    }; // Heredar posición inicial
+    };
     return clone;
   }
 
+  /**
+   * Mutates the creature's neural network and color
+   */
   mutate() {
     this.brain.mutate(
       0.1, // mutationRate 
-      0.2 + Math.random() * 0.3 // mutationScale variable
+      0.2 + Math.random() * 0.3 // mutationScale (variable)
     );
-    this.color = colorSmallChange(this.color)
+    this.color = colorSmallChange(this.color);
   }
-
 }
 
 export default Creature;
