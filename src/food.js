@@ -12,7 +12,7 @@ export default class Food {
 
   #randomPos() {
     this.position = {
-      x: Math.random() * (this.worldWidth * 0.5),
+      x: Math.random() * this.worldWidth,
       y: Math.random() * this.worldHeight
     };
   }

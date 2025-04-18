@@ -53,10 +53,14 @@ const randomY = () => Math.floor(Math.random() * $canvas.height);
 
 const generateFood = () => {
   foods.length = 0
-  for (let i = 0; i < maxFoodAmount; i++) {
-    const food = new Food(ctx, $canvas.width, $canvas.height);
-    foods.push(food)
-  }
+  const rightBias = generation > 5 ? 0.7 : 0.3;
+  foods = Array.from({ length: maxFoodAmount }, () => {
+    return new Food(
+      ctx,
+      $canvas.width * (Math.random() > rightBias ? 0.6 : 0.1),
+      $canvas.height * Math.random()
+    );
+  });
 }
 
 const respawnFood = () => {
