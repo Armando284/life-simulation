@@ -180,18 +180,13 @@ function nextGeneration() {
  * @param {Creature} creature 
  * @returns 
  */
-function calculateFitness(creature) {
-  let fitness = 0;
-
-  fitness += (creature.position.x - creature.initialPos.x) * 0.5;
-
-  // Premiar energía restante
-  fitness += creature.energy * 2;
-
-  // Premiar comidas recolectadas
-  fitness += creature.foodEaten * 10;
-
-  return fitness;
+function calculateFitness(c) {
+  return (
+    c.position.x * 0.7 +
+    c.foodEaten * 50 +
+    c.energy * 0.3 -
+    c.collisions * 2 // Añadir contador de colisiones
+  );
 }
 
 /**
