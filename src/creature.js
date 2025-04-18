@@ -215,15 +215,9 @@ class Creature {
     this.velocity = { x: 0, y: 0 };
 
     // Determine direction based on strongest output
-    if (up === Math.max(up, down, left, right)) {
-      this.velocity.y = -this.speed;
-    } else if (down === Math.max(up, down, left, right)) {
-      this.velocity.y = this.speed;
-    } else if (left === Math.max(up, down, left, right)) {
-      this.velocity.x = -this.speed;
-    } else if (right === Math.max(up, down, left, right)) {
-      this.velocity.x = this.speed;
-    }
+    // Allows for diagonal movement
+    this.velocity.x = (right - left) * this.speed;
+    this.velocity.y = (down - up) * this.speed;
 
     // Update position with world boundaries
     this.position.x = Math.max(
