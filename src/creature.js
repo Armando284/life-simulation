@@ -51,7 +51,7 @@ class Creature {
    */
   update(obstacles = []) {
     // 0. Movement spends energy
-    this.energy = Math.max(0, this.energy - 0.005);
+    this.energy = Math.max(0, this.energy - 0.02);
 
     // 1. Store previous position for collision resolution
     this.previousPosition = { ...this.position };
@@ -202,7 +202,7 @@ class Creature {
     if (!this.canEat) return
     this.canEat = false
     this.foodEaten++
-    this.energy = Math.min(this.maxEnergy, this.energy + 20);
+    this.energy = Math.min(this.maxEnergy, this.energy + 35);
     food.despawn()
     this.canEat = true
   }
@@ -309,10 +309,9 @@ class Creature {
    * Mutates the creature's neural network and color
    */
   mutate() {
-    this.brain.mutate(
-      0.1, // mutationRate 
-      0.2 + Math.random() * 0.3 // mutationScale (variable)
-    );
+    const mutationRate = 0.05 + (1 - this.energy / 100) * 0.1;
+    const mutationScale = 0.1 + (this.foodEaten / 10);
+    this.brain.mutate(mutationRate, mutationScale);
     this.color = colorSmallChange(this.color);
   }
 }
