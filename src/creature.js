@@ -148,7 +148,7 @@ class Creature {
    * @returns {number} Normalized distance (0 = no obstacle, 1 = touching)
    */
   getSensorDistance(obstacles, angleOffset, visionWidth) {
-    const sensorLength = this.size * 20;
+    const sensorLength = this.size * 5;
 
     // Sensor direction (body angle + offset)
     const sensorAngle = this.angle + angleOffset;
