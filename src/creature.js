@@ -39,8 +39,10 @@ class Creature {
     this.maxEnergy = 100
     this.energy = this.maxEnergy
 
+    this.collisions = 0
+
     // Neural network (1 input, [200, 200] hidden layers, 4 outputs)
-    this.brain = new NeuralNetwork([5, 100, 100, 100, 4]);
+    this.brain = new NeuralNetwork([5, 16, 16, 4]);
   }
 
   /**
@@ -91,6 +93,7 @@ class Creature {
         if (obj instanceof Food) {
           this.eat(obj)
         } else {
+          this.collisions++
           // (push apart)
           const angle = Math.atan2(dy, dx);
           const overlap = minDistance - distance;
@@ -211,13 +214,20 @@ class Creature {
   move(outputs) {
     const [up, down, left, right] = outputs;
 
+    // 1. Calcular vector de dirección
+    const dirX = right - left;
+    const dirY = down - up;
+
+    // 2. Normalizar el vector (magnitud 1)
+    const magnitude = Math.sqrt(dirX ** 2 + dirY ** 2);
+
     // Reset velocity
     this.velocity = { x: 0, y: 0 };
 
     // Determine direction based on strongest output
     // Allows for diagonal movement
-    this.velocity.x = (right - left) * this.speed;
-    this.velocity.y = (down - up) * this.speed;
+    this.velocity.x = (dirX / magnitude) * this.speed;
+    this.velocity.y = (dirY / magnitude) * this.speed;
 
     // Update position with world boundaries
     this.position.x = Math.max(
