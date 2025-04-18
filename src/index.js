@@ -1,4 +1,5 @@
 import Creature from "./creature.js";
+import Food from "./food.js";
 import { $, randomColor } from "./utils.js";
 import { config } from "./config.js";
 
@@ -30,20 +31,37 @@ const $creatures = $('#creatures');
 const creatures = [];
 let generation = 0;
 let frameCount = 0;
-const generationLength = 1000;
-const initialPopulationSize = 100;
+const generationLength = 2 * 1000;
+const initialPopulationSize = 50;
+const maxFoodAmount = 25;
 
+/**
+ * @type {Food[]}
+ */
+let foods = []
 /**
  * Generates a random X coordinate within canvas width
  * @returns {number} Random X position
  */
-const randomX = () => Math.floor(Math.random() * $canvas.width);
+const randomX = () => Math.max($canvas.width * 0, Math.floor(Math.random() * $canvas.width));
 
 /**
  * Generates a random Y coordinate within canvas height
  * @returns {number} Random Y position
  */
 const randomY = () => Math.floor(Math.random() * $canvas.height);
+
+const generateFood = () => {
+  foods.length = 0
+  for (let i = 0; i < maxFoodAmount; i++) {
+    const food = new Food(ctx, $canvas.width, $canvas.height);
+    foods.push(food)
+  }
+}
+
+const respawnFood = () => {
+  foods.forEach((food) => { food.respawn() })
+}
 
 /**
  * Initializes the simulation with a new population of creatures
@@ -58,11 +76,12 @@ function initSimulation() {
       ctx,
       $canvas.width,
       $canvas.height,
-      randomColor()
+      randomColor(),
     );
     creature.mutate();
     creatures.push(creature);
   }
+  generateFood()
 
   generation = 0;
   frameCount = 0;
@@ -79,10 +98,14 @@ function simulate() {
   ctx.fillStyle = 'rgba(255, 100, 100, 0.2)';
   ctx.fillRect(0, 0, $canvas.width / 2, $canvas.height);
 
+  //Update and draw food
+  for (const food of foods) {
+    food.draw()
+  }
+
   // Update and draw creatures
   for (const creature of creatures) {
-    creature.update(creatures);
-    creature.draw();
+    creature.update([...creatures, ...foods]);
   }
 
   // Pause if no creatures left
@@ -94,6 +117,9 @@ function simulate() {
 
   // Create new generation when generation length is reached
   if (frameCount >= generationLength) {
+    if (generation >= 50) {
+      $pauseBtn.click()
+    }
     nextGeneration();
     frameCount = 0;
     generation++;
@@ -111,35 +137,61 @@ function simulate() {
  */
 function nextGeneration() {
   // Filter creatures in the right half (eligible for reproduction)
-  const rightSideCreatures = creatures.filter(creature =>
-    creature.position.x > $canvas.width / 2
+  const canReproduceCreatures = creatures.filter(creature =>
+    creature.position.x > $canvas.width / 2 &&
+    creature.foodEaten > 0
   );
 
   // Sort by fitness (distance traveled in X axis)
-  rightSideCreatures.sort((a, b) => (b.position.x - b.initialPos.x) - (a.position.x - a.initialPos.x));
+  canReproduceCreatures.sort((a, b) => calculateFitness(b) - calculateFitness(a));
 
   // Select top performers (top half)
-  const parents = rightSideCreatures.slice(0, Math.ceil(rightSideCreatures.length / 2));
+  const parents = canReproduceCreatures.slice(0, Math.ceil(canReproduceCreatures.length / 2));
   const newCreatures = [];
 
+  const maxChildren = initialPopulationSize / parents.length
+
+  // const randomChildrenUnderMax = Math.floor(Math.random() * maxChildren)
+  // const minChildren = 10
+  // const randomChildrenBetweenMinAndMax = Math.max(minChildren, randomChildrenUnderMax)
   // Create new generation
   for (const parent of parents) {
-    // Create 2 children per parent
-    const child1 = parent.clone();
-    const child2 = parent.clone();
+    // Creates N children per parent
+    const children = Array.from({ length: maxChildren }, () => {
+      const child = parent.clone();
+      child.position = {
+        x: randomX(),
+        y: randomY()
+      }
+      return child
+    })
 
-    // Position children randomly
-    child1.position.x = randomX();
-    child1.position.y = randomY();
-    child2.position.x = randomX();
-    child2.position.y = randomY();
-
-    newCreatures.push(child1, child2);
+    newCreatures.push(...children);
   }
 
   // Replace population (maintain same number of creatures)
   creatures.length = 0;
   creatures.push(...newCreatures);
+  respawnFood()
+}
+
+/**
+ * 
+ * @param {Creature} creature 
+ * @returns 
+ */
+function calculateFitness(creature) {
+  let fitness = 0;
+
+  fitness += (creature.position.x - creature.initialPos.x) * 0.5;
+
+  // Premiar energía restante
+  fitness += creature.energy * 2;
+
+  // Premiar comidas recolectadas
+  fitness += creature.foodEaten * 10;
+
+  return fitness;
 }
 
 /**
@@ -148,7 +200,7 @@ function nextGeneration() {
 function drawGenerationInfo() {
   $generation.textContent = generation;
   $frame.textContent = `${frameCount}/${generationLength}`;
-  $creatures.textContent = creatures.length;
+  $creatures.textContent = `${creatures.length}/${initialPopulationSize}`;
 }
 
 /**

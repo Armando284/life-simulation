@@ -1,3 +1,4 @@
+import Food from "./food.js";
 import NeuralNetwork from "./neural_network.js";
 import { colorSmallChange, randomColor } from "./utils.js";
 
@@ -32,21 +33,32 @@ class Creature {
     this.angle = 0;
     this.collisionRadius = this.size * 0.8;
 
+    this.foodEaten = 0
+    this.canEat = true;
+
+    this.maxEnergy = 100
+    this.energy = this.maxEnergy
+
     // Neural network (1 input, [200, 200] hidden layers, 4 outputs)
-    this.brain = new NeuralNetwork([1, 200, 200, 4]);
+    this.brain = new NeuralNetwork([5, 100, 100, 100, 4]);
   }
 
   /**
    * Updates creature state including position, collisions and drawing
-   * @param {Creature[]} obstacles - Array of other creatures to consider
+   * @param {(Creature | Food)[]} obstacles - Array of other creatures to consider
    */
   update(obstacles = []) {
+    // 0. Movement spends energy
+    this.energy = Math.max(0, this.energy - 0.005);
+
     // 1. Store previous position for collision resolution
     this.previousPosition = { ...this.position };
 
     // 2. Get neural network input and process movement
-    const input = this.getFrontDistance(obstacles);
-    const outputs = this.brain.brain([input]);
+    const frontDist = this.getFrontDistance(obstacles);
+    const leftDist = this.getLeftDistance(obstacles);
+    const rightDist = this.getRightDistance(obstacles);
+    const outputs = this.brain.brain([frontDist, leftDist, rightDist, this.foodEaten, this.energy]);
     this.move(outputs);
 
     // 3. Handle collisions with other creatures
@@ -61,36 +73,41 @@ class Creature {
 
   /**
    * Handles collisions with other creatures and world boundaries
-   * @param {Creature[]} creatures - Array of other creatures
+   * @param {(Creature | Food)[]} objects - Array of other creatures
    */
-  handleCollisions(creatures) {
-    for (const other of creatures) {
-      if (other === this) continue;
-
-      const dx = other.position.x - this.position.x;
-      const dy = other.position.y - this.position.y;
+  handleCollisions(objects) {
+    for (const obj of objects) {
+      if (obj === this) continue;
+      const dx = obj.position.x - this.position.x;
+      const dy = obj.position.y - this.position.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
 
       // Minimum distance before collision occurs
-      const minDistance = this.collisionRadius + other.collisionRadius;
+      const minDistance = this.collisionRadius + obj.collisionRadius;
 
       if (distance < minDistance) {
-        // Resolve collision (push apart)
-        const angle = Math.atan2(dy, dx);
-        const overlap = minDistance - distance;
 
-        // Move both creatures (50% responsibility each)
-        this.position.x -= Math.cos(angle) * overlap * 0.5;
-        this.position.y -= Math.sin(angle) * overlap * 0.5;
-        other.position.x += Math.cos(angle) * overlap * 0.5;
-        other.position.y += Math.sin(angle) * overlap * 0.5;
+        // Resolve collision 
+        if (obj instanceof Food) {
+          this.eat(obj)
+        } else {
+          // (push apart)
+          const angle = Math.atan2(dy, dx);
+          const overlap = minDistance - distance;
 
-        // Apply bounce effect by modifying velocities
-        const damping = 0.7;
-        this.velocity.x = -Math.cos(angle) * this.speed * damping;
-        this.velocity.y = -Math.sin(angle) * this.speed * damping;
-        other.velocity.x = Math.cos(angle) * other.speed * damping;
-        other.velocity.y = Math.sin(angle) * other.speed * damping;
+          // Move both creatures (50% responsibility each)
+          this.position.x -= Math.cos(angle) * overlap * 0.5;
+          this.position.y -= Math.sin(angle) * overlap * 0.5;
+          obj.position.x += Math.cos(angle) * overlap * 0.5;
+          obj.position.y += Math.sin(angle) * overlap * 0.5;
+
+          // Apply bounce effect by modifying velocities
+          const damping = 0.7;
+          this.velocity.x = -Math.cos(angle) * this.speed * damping;
+          this.velocity.y = -Math.sin(angle) * this.speed * damping;
+          obj.velocity.x = Math.cos(angle) * obj.speed * damping;
+          obj.velocity.y = Math.sin(angle) * obj.speed * damping;
+        }
       }
     }
 
@@ -105,23 +122,45 @@ class Creature {
     );
   }
 
+  // Front sensor (60° of view)
+  getFrontDistance(obstacles) {
+    return this.getSensorDistance(obstacles, 0, Math.PI / 3); // 60°
+  }
+
+  // Left sensor (60° of view, 90° left from body front)
+  getLeftDistance(obstacles) {
+    return this.getSensorDistance(obstacles, -Math.PI / 2, Math.PI / 3);
+  }
+
+  // Right Sensor (60° of view, 90° right from body front)
+  getRightDistance(obstacles) {
+    return this.getSensorDistance(obstacles, Math.PI / 2, Math.PI / 3);
+  }
+
   /**
-   * Calculates distance to nearest obstacle in front of the creature
+   * Calculates distance to nearest obstacle in a specific direction
    * @param {Creature[]} obstacles - Array of other creatures
+   * @param {number} angleOffset - Offset from facing direction (in radians)
+   * @param {number} visionWidth - Vision cone width (in radians)
    * @returns {number} Normalized distance (0 = no obstacle, 1 = touching)
    */
-  getFrontDistance(obstacles) {
-    const sensorLength = this.size * 3;
-    const frontX = this.position.x + Math.cos(this.angle - Math.PI / 2) * sensorLength;
-    const frontY = this.position.y + Math.sin(this.angle - Math.PI / 2) * sensorLength;
+  getSensorDistance(obstacles, angleOffset, visionWidth) {
+    const sensorLength = this.size * 20;
 
-    // Check world boundaries first
-    if (frontX <= 0 || frontX >= this.worldWidth ||
-      frontY <= 0 || frontY >= this.worldHeight) {
+    // Sensor direction (body angle + offset)
+    const sensorAngle = this.angle + angleOffset;
+
+    // Sensor end (for world boundaries)
+    const sensorEndX = this.position.x + Math.cos(sensorAngle) * sensorLength;
+    const sensorEndY = this.position.y + Math.sin(sensorAngle) * sensorLength;
+
+    // Check world boundary on sensor direction
+    if (sensorEndX <= 0 || sensorEndX >= this.worldWidth ||
+      sensorEndY <= 0 || sensorEndY >= this.worldHeight) {
       return 1;
     }
 
-    // Check other creatures
+    // Calculate distance to obstacle
     let closestDistance = Infinity;
 
     for (const obstacle of obstacles) {
@@ -131,13 +170,13 @@ class Creature {
       const dy = obstacle.position.y - this.position.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
 
-      // Angle to obstacle
+      // Ángle to obstacle
       const angleToObstacle = Math.atan2(dy, dx);
-      const angleDiff = Math.abs(this.angle - angleToObstacle);
+      let angleDiff = Math.abs(sensorAngle - angleToObstacle);
+      angleDiff = Math.min(angleDiff, Math.PI * 2 - angleDiff); // ! corrected to avoid 360°
 
-      // Only consider obstacles in front (60° vision cone)
-      if (angleDiff < Math.PI / 3 && distance < sensorLength) {
-        // Real distance accounting for sizes
+      // Only take obstacles on view
+      if (angleDiff <= visionWidth / 2 && distance < sensorLength) {
         const realDistance = distance - (this.size + obstacle.size);
         if (realDistance < closestDistance) {
           closestDistance = realDistance;
@@ -145,11 +184,24 @@ class Creature {
       }
     }
 
-    // Normalize value (0 = nothing, 1 = touching)
-    if (closestDistance !== Infinity) {
-      return 1 - Math.min(1, closestDistance / sensorLength);
-    }
-    return 0;
+    // Normalize (0 = nothing, 1 = touching)
+    return closestDistance !== Infinity
+      ? 1 - Math.min(1, closestDistance / sensorLength)
+      : 0;
+  }
+
+  /**
+   * 
+   * @param {Food} food 
+   * @returns 
+   */
+  eat(food) {
+    if (!this.canEat) return
+    this.canEat = false
+    this.foodEaten++
+    this.energy = Math.min(this.maxEnergy, this.energy + 20);
+    food.despawn()
+    this.canEat = true
   }
 
   /**
@@ -237,7 +289,7 @@ class Creature {
     clone.brain = this.brain.clone();
 
     // 6% chance of mutation when cloning
-    if (Math.random() < 0.06) {
+    if (Math.random() < 0.1) {
       clone.mutate();
     }
 

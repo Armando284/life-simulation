@@ -47,6 +47,7 @@ class Layer {
     }
   }
 
+  // RELU
   activation() {
     this.nodes = this.nodes.map(node => Math.max(node, 0))
   }

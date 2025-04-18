@@ -5,7 +5,7 @@ export const $ = (tag) => {
   return document.querySelector(tag)
 }
 
-const HEX_VALUES = '0001123456789abcdeefff'
+const HEX_VALUES = '0123456789abcdef'
 
 const getOneRandomHexValue = () => HEX_VALUES[Math.floor(Math.random() * HEX_VALUES.length)]
 
@@ -16,17 +16,15 @@ export const randomColor = () => {
 
 export const colorSmallChange = (color) => {
   // #rrggbb
-  const validIndexesToChange = [2, 4, 6]
-  const indexToChange = validIndexesToChange[Math.floor(Math.random() * validIndexesToChange.length)]
+  let changedColor = ''
+  const chars = color.split('')
 
-  const codeStart = color.slice(0, indexToChange)
-
-  let mutatedCharacter = ''
   do {
-    mutatedCharacter = getOneRandomHexValue()
-  } while (mutatedCharacter === color[indexToChange]);
+    chars[1] = getOneRandomHexValue()
+    chars[3] = getOneRandomHexValue()
+    chars[5] = getOneRandomHexValue()
+    changedColor = chars.join('')
+  } while (color === changedColor);
 
-  const codeEnd = color.slice(indexToChange + 1)
-
-  return `${codeStart}${mutatedCharacter}${indexToChange < color.length && codeEnd}`
+  return changedColor
 }
