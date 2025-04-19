@@ -1,6 +1,6 @@
 import Food from "./food.js";
 import NeuralNetwork from "./neural_network.js";
-import { colorSmallChange, randomColor } from "./utils.js";
+import { colorSmallChange } from "./utils.js";
 
 // Debug flag for development features
 const DEBUG_MODE = true;
@@ -43,7 +43,7 @@ class Creature {
 
     // Neural network (1 input, [200, 200] hidden layers, 4 outputs)
     this.brain = new NeuralNetwork(
-      [8, 16, 16, 4],
+      [8, 16, 16, 16, 4],
       {
         activation: 'leaky-relu', // Activación para capas ocultas
         dropout: 0.2 // 20% de dropout en capas ocultas

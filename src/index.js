@@ -26,6 +26,7 @@ const $speedValue = $('#speedValue');
 const $generation = $('#generation');
 const $frame = $('#frame');
 const $creatures = $('#creatures');
+const $printModel = $('#printModel')
 
 // Simulation state
 /**
@@ -76,7 +77,7 @@ const respawnFood = () => {
 function initSimulation() {
   console.clear()
   creatures.length = 0;
-
+  const trainedModel = localStorage.getItem('best-model')
   for (let i = 0; i < initialPopulationSize; i++) {
     const creature = new Creature(
       randomX(),
@@ -86,7 +87,12 @@ function initSimulation() {
       $canvas.height,
       randomColor(),
     );
-    creature.mutate();
+    if (i === 0 && trainedModel) {
+      creature.brain.setModel(JSON.parse(trainedModel))
+      creature.color = '#000000'
+    } else {
+      creature.mutate();
+    }
     creatures.push(creature);
   }
   generateFood()
@@ -180,7 +186,8 @@ function nextGeneration() {
   // Replace population (maintain same number of creatures)
   creatures.length = 0;
   creatures.push(...newCreatures);
-  respawnFood()
+  // respawnFood()
+  generateFood()
 }
 
 /**
@@ -268,7 +275,29 @@ function setupControls() {
       restartSimulation();
     }
   });
+
+  $printModel.onclick = () => {
+    if (creatures.length <= 0) throw new Error('No model available!')
+
+    const bestCreature = creatures.sort((a, b) => calculateFitness(b) - calculateFitness(a))[0]
+    console.log('\nBEST MODEL\n')
+    const bestModel = bestCreature.brain.getModel()
+    localStorage.setItem('best-model', JSON.stringify(bestModel))
+    downloadJSON(bestModel)
+    console.log(bestModel)
+    console.log('\nEND BEST MODEL\n')
+  }
 }
 
 // Initialize controls
 setupControls();
+
+function downloadJSON(jsonData) {
+  const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'archivo.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}

@@ -94,6 +94,9 @@ export default class NeuralNetwork {
       activation: options.activation || 'relu', // Activación por defecto
       dropout: options.dropout || 0 // Dropout por defecto
     };
+    /**
+     * @type {Layer[]}
+     */
     this.layers = new Array(networkShape.length - 1)
     this.awake()
   }
@@ -111,7 +114,6 @@ export default class NeuralNetwork {
         dropout
       );
     }
-
   }
 
   brain(inputs) {
@@ -157,5 +159,19 @@ export default class NeuralNetwork {
     return `${this.layers.reduce((prev, layer) => {
       return `${prev}${JSON.stringify(layer.weights.n)}${JSON.stringify(layer.biases)}-`
     }, '')}`.slice(0, -1)
+  }
+
+  getModel() {
+    return this.layers.map(layer => ({
+      weights: layer.weights.n,
+      biases: layer.biases
+    }))
+  }
+
+  setModel(model) {
+    model.forEach((layer, i) => {
+      this.layers[i].weights.n = layer.weights
+      this.layers[i].biases = layer.biases
+    });
   }
 }

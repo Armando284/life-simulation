@@ -7,11 +7,13 @@ export const $ = (tag) => {
 
 const HEX_VALUES = '0123456789abcdef'
 
-const getOneRandomHexValue = () => HEX_VALUES[Math.floor(Math.random() * HEX_VALUES.length)]
+const getOneRandomHexValue = () => HEX_VALUES.slice(8)[Math.floor(Math.random() * HEX_VALUES.length / 2)]
+
+const FORBIDEN_RANDOM_COLORS = ['#ffffff', '#000000']
 
 export const randomColor = () => {
-  const color = Array.from({ length: 6 }, getOneRandomHexValue)
-  return `#${color.join('')}`
+  const color = `#${Array.from({ length: 6 }, getOneRandomHexValue).join('')}`
+  return FORBIDEN_RANDOM_COLORS.includes(color) ? randomColor() : color
 }
 
 export const colorSmallChange = (color) => {
