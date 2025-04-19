@@ -23,12 +23,16 @@ class FloatMatrix {
 }
 
 class Layer {
-  constructor(n_inputs, n_nodes) {
+  constructor(n_inputs, n_nodes, activationType = 'relu', dropoutRate = 0) {
     this.n_inputs = n_inputs
     this.n_nodes = n_nodes
     this.weights = new FloatMatrix(n_nodes, n_inputs)
     this.biases = new Float64Array(n_nodes)
     this.nodes = new Float64Array(n_nodes)
+
+    // Nuevos parámetros
+    this.activationType = activationType; // 'relu', 'leaky-relu', 'linear'
+    this.dropoutRate = dropoutRate; // 0-1 (ej: 0.2 = 20% de dropout)
   }
 
   forward(inputs) {
@@ -47,13 +51,36 @@ class Layer {
     }
   }
 
-  // RELU
   activation() {
-    this.nodes = this.nodes.map(node => Math.max(node, 0))
+    switch (this.activationType) {
+      case 'leaky-relu':
+        this.nodes = this.nodes.map(node => node > 0 ? node : 0.01 * node); // Leaky ReLU (alpha=0.01)
+        break;
+      case 'relu':
+        this.nodes = this.nodes.map(node => Math.max(0, node));
+        break;
+      case 'linear':
+        // Sin activación (útil para capa de salida)
+        break;
+    }
+  }
+
+  applyDropout() {
+    if (this.dropoutRate > 0) {
+      const scale = 1 / (1 - this.dropoutRate); // Scaling para mantener misma magnitud en entrenamiento
+      this.nodes = this.nodes.map(node =>
+        Math.random() < this.dropoutRate ? 0 : node * scale
+      );
+    }
   }
 
   clone() {
-    const newLayer = new Layer(this.n_inputs, this.n_nodes);
+    const newLayer = new Layer(
+      this.n_inputs,
+      this.n_nodes,
+      this.activationType,
+      this.dropoutRate
+    );
     newLayer.weights = this.weights.clone();
     newLayer.biases = new Float64Array(this.biases);
     return newLayer;
@@ -61,28 +88,43 @@ class Layer {
 }
 
 export default class NeuralNetwork {
-  constructor(networkShape) {
+  constructor(networkShape, options = {}) {
     this.networkShape = networkShape
+    this.options = {
+      activation: options.activation || 'relu', // Activación por defecto
+      dropout: options.dropout || 0 // Dropout por defecto
+    };
     this.layers = new Array(networkShape.length - 1)
     this.awake()
   }
 
   awake() {
     for (let i = 0; i < this.layers.length; i++) {
-      this.layers[i] = new Layer(this.networkShape[i], this.networkShape[i + 1]);
+      const isOutputLayer = i === this.layers.length - 1;
+      const activation = isOutputLayer ? 'linear' : this.options.activation;
+      const dropout = isOutputLayer ? 0 : this.options.dropout;
+
+      this.layers[i] = new Layer(
+        this.networkShape[i],
+        this.networkShape[i + 1],
+        activation,
+        dropout
+      );
     }
+
   }
 
   brain(inputs) {
     for (let i = 0; i < this.layers.length; i++) {
       const entryValues = i === 0 ? inputs : this.layers[i - 1].nodes;
       this.layers[i].forward(entryValues);
+
       if (i !== this.layers.length - 1) {
         this.layers[i].activation();
+        this.layers[i].applyDropout(); // Aplicar dropout después de activación
       }
     }
-
-    return (this.layers[this.layers.length - 1].nodes);
+    return this.layers[this.layers.length - 1].nodes;
   }
 
   clone() {

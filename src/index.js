@@ -28,11 +28,14 @@ const $frame = $('#frame');
 const $creatures = $('#creatures');
 
 // Simulation state
+/**
+ * @type {Creature[]}
+ */
 const creatures = [];
 let generation = 0;
 let frameCount = 0;
 const generationLength = 2 * 1000;
-const initialPopulationSize = 50;
+const initialPopulationSize = 100;
 const maxFoodAmount = 25;
 
 /**
@@ -43,13 +46,13 @@ let foods = []
  * Generates a random X coordinate within canvas width
  * @returns {number} Random X position
  */
-const randomX = () => Math.max($canvas.width * 0, Math.floor(Math.random() * $canvas.width));
+const randomX = () => Math.max(50, Math.floor(Math.random() * $canvas.width));
 
 /**
  * Generates a random Y coordinate within canvas height
  * @returns {number} Random Y position
  */
-const randomY = () => Math.floor(Math.random() * $canvas.height);
+const randomY = () => Math.max(50, Math.floor(Math.random() * $canvas.height));
 
 const generateFood = () => {
   foods.length = 0
@@ -71,6 +74,7 @@ const respawnFood = () => {
  * Initializes the simulation with a new population of creatures
  */
 function initSimulation() {
+  console.clear()
   creatures.length = 0;
 
   for (let i = 0; i < initialPopulationSize; i++) {
@@ -109,7 +113,7 @@ function simulate() {
 
   // Update and draw creatures
   for (const creature of creatures) {
-    creature.update([...creatures, ...foods]);
+    creature.update(creatures, foods);
   }
 
   // Pause if no creatures left

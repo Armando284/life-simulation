@@ -42,14 +42,22 @@ class Creature {
     this.collisions = 0
 
     // Neural network (1 input, [200, 200] hidden layers, 4 outputs)
-    this.brain = new NeuralNetwork([5, 16, 16, 4]);
+    this.brain = new NeuralNetwork(
+      [8, 16, 16, 4],
+      {
+        activation: 'leaky-relu', // Activación para capas ocultas
+        dropout: 0.2 // 20% de dropout en capas ocultas
+      }
+
+    );
   }
 
   /**
    * Updates creature state including position, collisions and drawing
-   * @param {(Creature | Food)[]} obstacles - Array of other creatures to consider
+   * @param {Creature[]} obstacles - Array of other creatures to consider
+   * @param {Food[]} foods - Array of other creatures to consider
    */
-  update(obstacles = []) {
+  update(obstacles = [], foods = []) {
     // 0. Movement spends energy
     this.energy = Math.max(0, this.energy - 0.02);
 
@@ -60,11 +68,16 @@ class Creature {
     const frontDist = this.getFrontDistance(obstacles);
     const leftDist = this.getLeftDistance(obstacles);
     const rightDist = this.getRightDistance(obstacles);
-    const outputs = this.brain.brain([frontDist, leftDist, rightDist, this.foodEaten, this.energy]);
+    const frontDistToFood = this.getFrontDistance(foods);
+    const leftDistToFood = this.getLeftDistance(foods);
+    const rightDistToFood = this.getRightDistance(foods);
+
+    const outputs = this.brain.brain([frontDist, leftDist, rightDist, frontDistToFood, leftDistToFood, rightDistToFood, this.foodEaten, this.energy]);
+
     this.move(outputs);
 
     // 3. Handle collisions with other creatures
-    this.handleCollisions(obstacles);
+    this.handleCollisions([...obstacles, ...foods]);
 
     // 4. Update orientation and draw
     if (this.velocity.x !== 0 || this.velocity.y !== 0) {
@@ -88,7 +101,6 @@ class Creature {
       const minDistance = this.collisionRadius + obj.collisionRadius;
 
       if (distance < minDistance) {
-
         // Resolve collision 
         if (obj instanceof Food) {
           this.eat(obj)
@@ -97,12 +109,15 @@ class Creature {
           // (push apart)
           const angle = Math.atan2(dy, dx);
           const overlap = minDistance - distance;
-
           // Move both creatures (50% responsibility each)
-          this.position.x -= Math.cos(angle) * overlap * 0.5;
-          this.position.y -= Math.sin(angle) * overlap * 0.5;
-          obj.position.x += Math.cos(angle) * overlap * 0.5;
-          obj.position.y += Math.sin(angle) * overlap * 0.5;
+          this.position = {
+            x: this.position.x - Math.cos(angle) * overlap * 0.5,
+            y: this.position.y - Math.sin(angle) * overlap * 0.5
+          }
+          obj.position = {
+            x: obj.position.x - Math.cos(angle) * overlap * 0.5,
+            y: obj.position.y - Math.sin(angle) * overlap * 0.5
+          }
 
           // Apply bounce effect by modifying velocities
           const damping = 0.7;
@@ -115,39 +130,41 @@ class Creature {
     }
 
     // Keep within world boundaries (wall collisions)
-    this.position.x = Math.max(
-      this.collisionRadius,
-      Math.min(this.worldWidth - this.collisionRadius, this.position.x)
-    );
-    this.position.y = Math.max(
-      this.collisionRadius,
-      Math.min(this.worldHeight - this.collisionRadius, this.position.y)
-    );
+    this.position = {
+      x: Math.max(
+        this.collisionRadius,
+        Math.min(this.worldWidth - this.collisionRadius, this.position.x)
+      ),
+      y: Math.max(
+        this.collisionRadius,
+        Math.min(this.worldHeight - this.collisionRadius, this.position.y)
+      )
+    };
   }
 
   // Front sensor (60° of view)
-  getFrontDistance(obstacles) {
-    return this.getSensorDistance(obstacles, 0, Math.PI / 3); // 60°
+  getFrontDistance(objects) {
+    return this.getSensorDistance(objects, 0, Math.PI / 3); // 60°
   }
 
   // Left sensor (60° of view, 90° left from body front)
-  getLeftDistance(obstacles) {
-    return this.getSensorDistance(obstacles, -Math.PI / 2, Math.PI / 3);
+  getLeftDistance(objects) {
+    return this.getSensorDistance(objects, -Math.PI / 2, Math.PI / 3);
   }
 
   // Right Sensor (60° of view, 90° right from body front)
-  getRightDistance(obstacles) {
-    return this.getSensorDistance(obstacles, Math.PI / 2, Math.PI / 3);
+  getRightDistance(objects) {
+    return this.getSensorDistance(objects, Math.PI / 2, Math.PI / 3);
   }
 
   /**
    * Calculates distance to nearest obstacle in a specific direction
-   * @param {Creature[]} obstacles - Array of other creatures
+   * @param {Creature[] | Food[]} objects - Array of other creatures
    * @param {number} angleOffset - Offset from facing direction (in radians)
    * @param {number} visionWidth - Vision cone width (in radians)
    * @returns {number} Normalized distance (0 = no obstacle, 1 = touching)
    */
-  getSensorDistance(obstacles, angleOffset, visionWidth) {
+  getSensorDistance(objects, angleOffset, visionWidth) {
     const sensorLength = this.size * 5;
 
     // Sensor direction (body angle + offset)
@@ -166,11 +183,11 @@ class Creature {
     // Calculate distance to obstacle
     let closestDistance = Infinity;
 
-    for (const obstacle of obstacles) {
-      if (obstacle === this) continue;
+    for (const obj of objects) {
+      if (obj === this) continue;
 
-      const dx = obstacle.position.x - this.position.x;
-      const dy = obstacle.position.y - this.position.y;
+      const dx = obj.position.x - this.position.x;
+      const dy = obj.position.y - this.position.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
 
       // Ángle to obstacle
@@ -180,7 +197,7 @@ class Creature {
 
       // Only take obstacles on view
       if (angleDiff <= visionWidth / 2 && distance < sensorLength) {
-        const realDistance = distance - (this.size + obstacle.size);
+        const realDistance = distance - (this.size + obj.size);
         if (realDistance < closestDistance) {
           closestDistance = realDistance;
         }
@@ -217,27 +234,26 @@ class Creature {
     // 1. Calcular vector de dirección
     const dirX = right - left;
     const dirY = down - up;
-
     // 2. Normalizar el vector (magnitud 1)
     const magnitude = Math.sqrt(dirX ** 2 + dirY ** 2);
-
     // Reset velocity
     this.velocity = { x: 0, y: 0 };
 
     // Determine direction based on strongest output
     // Allows for diagonal movement
-    this.velocity.x = (dirX / magnitude) * this.speed;
-    this.velocity.y = (dirY / magnitude) * this.speed;
-
+    this.velocity.x = ((dirX / magnitude) || 0) * this.speed;
+    this.velocity.y = ((dirY / magnitude) || 0) * this.speed;
     // Update position with world boundaries
-    this.position.x = Math.max(
-      this.size,
-      Math.min(this.worldWidth - this.size, this.position.x + this.velocity.x)
-    );
-    this.position.y = Math.max(
-      this.size,
-      Math.min(this.worldHeight - this.size, this.position.y + this.velocity.y)
-    );
+    this.position = {
+      x: Math.max(
+        this.size,
+        Math.min(this.worldWidth - this.size, this.position.x + this.velocity.x)
+      ),
+      y: Math.max(
+        this.size,
+        Math.min(this.worldHeight - this.size, this.position.y + this.velocity.y)
+      )
+    };
   }
 
   /**
