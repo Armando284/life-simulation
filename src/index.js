@@ -27,6 +27,8 @@ const $generation = $('#generation');
 const $frame = $('#frame');
 const $creatures = $('#creatures');
 const $printModel = $('#printModel')
+const $showGraphics = $('#showGraphics')
+let showGraphics = true
 
 // Simulation state
 /**
@@ -106,20 +108,24 @@ function initSimulation() {
  * Main simulation loop - updates and draws all creatures
  */
 function simulate() {
-  ctx.clearRect(0, 0, $canvas.width, $canvas.height);
+  if (showGraphics) {
 
-  // Draw selection zone (reddish left half)
-  ctx.fillStyle = 'rgba(255, 100, 100, 0.2)';
-  ctx.fillRect(0, 0, $canvas.width / 2, $canvas.height);
+    ctx.clearRect(0, 0, $canvas.width, $canvas.height);
 
-  //Update and draw food
-  for (const food of foods) {
-    food.draw()
+    // Draw selection zone (reddish left half)
+    ctx.fillStyle = 'rgba(255, 100, 100, 0.2)';
+    ctx.fillRect(0, 0, $canvas.width / 2, $canvas.height);
+
+    //Update and draw food
+    for (const food of foods) {
+      food.draw()
+    }
   }
 
   // Update and draw creatures
   for (const creature of creatures) {
     creature.update(creatures, foods);
+    if (showGraphics) creature.draw()
   }
 
   // Pause if no creatures left
@@ -131,9 +137,9 @@ function simulate() {
 
   // Create new generation when generation length is reached
   if (frameCount >= generationLength) {
-    if (generation >= 50) {
-      $pauseBtn.click()
-    }
+    // if (generation >= 50) {
+    //   $pauseBtn.click()
+    // }
     nextGeneration();
     frameCount = 0;
     generation++;
@@ -286,6 +292,10 @@ function setupControls() {
     downloadJSON(bestModel)
     console.log(bestModel)
     console.log('\nEND BEST MODEL\n')
+  }
+  $showGraphics.onclick = () => {
+    showGraphics = !showGraphics
+    $showGraphics.textContent = showGraphics ? 'Hide Graphics' : 'Show Graphics'
   }
 }
 

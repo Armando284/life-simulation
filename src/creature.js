@@ -83,7 +83,6 @@ class Creature {
     if (this.velocity.x !== 0 || this.velocity.y !== 0) {
       this.angle = Math.atan2(this.velocity.y, this.velocity.x) + Math.PI / 2;
     }
-    this.draw();
   }
 
   /**
