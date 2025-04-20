@@ -22,16 +22,16 @@ class FloatMatrix {
   }
 }
 
-const ACTIVATIONS = {
-  'linear': (x) => x,
-  'relu': (x) => Math.max(0, x),
-  'leaky-relu': (x) => x > 0 ? x : this.alpha * x,
-  'elu': (x) => x >= 0 ? x : this.alpha * (Math.exp(x) - 1),
-  'sigmoid': (x) => x >= 0 ? 1 / (1 + Math.exp(-x)) : Math.exp(x) / (1 + Math.exp(x)),
-  'tanh': (x) => Math.tanh(x),
-};
-
 class Layer {
+  ACTIVATIONS = {
+    'linear': (x) => x,
+    'relu': (x) => Math.max(0, x),
+    'leaky-relu': (x) => x > 0 ? x : this.alpha * x,
+    'elu': (x) => x >= 0 ? x : this.alpha * (Math.exp(x) - 1),
+    'sigmoid': (x) => x >= 0 ? 1 / (1 + Math.exp(-x)) : Math.exp(x) / (1 + Math.exp(x)),
+    'tanh': (x) => Math.tanh(x),
+  };
+
   constructor(n_inputs, n_nodes, activationType = 'relu', dropoutRate = 0, alpha = 0.01) {
     this.n_inputs = n_inputs
     this.n_nodes = n_nodes
@@ -62,7 +62,7 @@ class Layer {
   }
 
   activation() {
-    const activator = ACTIVATIONS[this.activationType] || ACTIVATIONS.relu;
+    const activator = this.ACTIVATIONS[this.activationType] || this.ACTIVATIONS.relu;
     this.nodes = this.nodes.map(activator);
   }
 
@@ -171,8 +171,16 @@ export default class NeuralNetwork {
 
   setModel(model) {
     model.forEach((layer, i) => {
-      this.layers[i].weights.n = layer.weights
-      this.layers[i].biases = layer.biases
+      let j = 0
+      for (const key in layer.weights) {
+        this.layers[i].weights.n[j] = layer.weights[key]
+        j++
+      }
+      j = 0
+      for (const key in layer.biases) {
+        this.layers[i].biases[j] = layer.biases[key]
+        j++
+      }
     });
   }
 }

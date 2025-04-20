@@ -87,7 +87,7 @@ function initSimulation() {
       $canvas.height,
       randomColor(),
     );
-    if (i === 0 && trainedModel) {
+    if (trainedModel) {
       creature.brain.setModel(JSON.parse(trainedModel))
       creature.color = '#000000'
     } else {
