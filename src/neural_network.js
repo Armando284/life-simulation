@@ -22,8 +22,17 @@ class FloatMatrix {
   }
 }
 
+const ACTIVATIONS = {
+  'linear': (x) => x,
+  'relu': (x) => Math.max(0, x),
+  'leaky-relu': (x) => x > 0 ? x : this.alpha * x,
+  'elu': (x) => x >= 0 ? x : this.alpha * (Math.exp(x) - 1),
+  'sigmoid': (x) => x >= 0 ? 1 / (1 + Math.exp(-x)) : Math.exp(x) / (1 + Math.exp(x)),
+  'tanh': (x) => Math.tanh(x),
+};
+
 class Layer {
-  constructor(n_inputs, n_nodes, activationType = 'relu', dropoutRate = 0) {
+  constructor(n_inputs, n_nodes, activationType = 'relu', dropoutRate = 0, alpha = 0.01) {
     this.n_inputs = n_inputs
     this.n_nodes = n_nodes
     this.weights = new FloatMatrix(n_nodes, n_inputs)
@@ -33,6 +42,7 @@ class Layer {
     // Nuevos parámetros
     this.activationType = activationType; // 'relu', 'leaky-relu', 'linear'
     this.dropoutRate = dropoutRate; // 0-1 (ej: 0.2 = 20% de dropout)
+    this.alpha = alpha
   }
 
   forward(inputs) {
@@ -52,17 +62,8 @@ class Layer {
   }
 
   activation() {
-    switch (this.activationType) {
-      case 'leaky-relu':
-        this.nodes = this.nodes.map(node => node > 0 ? node : 0.01 * node); // Leaky ReLU (alpha=0.01)
-        break;
-      case 'relu':
-        this.nodes = this.nodes.map(node => Math.max(0, node));
-        break;
-      case 'linear':
-        // Sin activación (útil para capa de salida)
-        break;
-    }
+    const activator = ACTIVATIONS[this.activationType] || ACTIVATIONS.relu;
+    this.nodes = this.nodes.map(activator);
   }
 
   applyDropout() {
