@@ -37,7 +37,7 @@ let showGraphics = true
 const creatures = [];
 let generation = 0;
 let frameCount = 0;
-const generationLength = 2 * 1000;
+const generationLength = 10 * 1000;
 const initialPopulationSize = 100;
 const maxFoodAmount = 25;
 
@@ -76,10 +76,13 @@ const respawnFood = () => {
 /**
  * Initializes the simulation with a new population of creatures
  */
-function initSimulation() {
+async function initSimulation() {
   console.clear()
   creatures.length = 0;
-  const trainedModel = localStorage.getItem('best-model')
+  const trainedModel = await fetch('./model.json')
+    .then((response) => response.json())
+    .then((json) => json)
+  console.log(trainedModel)
   for (let i = 0; i < initialPopulationSize; i++) {
     const creature = new Creature(
       randomX(),
@@ -90,7 +93,7 @@ function initSimulation() {
       randomColor(),
     );
     if (trainedModel) {
-      creature.brain.setModel(JSON.parse(trainedModel))
+      creature.brain.setModel(trainedModel)
       creature.color = '#000000'
     } else {
       creature.mutate();
@@ -234,7 +237,7 @@ function restartSimulation() {
  */
 function setupControls() {
   // Start/Reset button
-  $startBtn.addEventListener('click', () => {
+  $startBtn.addEventListener('click', async () => {
     if (config.frameRequestId) {
       cancelAnimationFrame(config.frameRequestId);
     }
@@ -245,7 +248,7 @@ function setupControls() {
       $pauseBtn.textContent = config.isPaused ? 'Restart' : 'Pause';
       $pauseBtn.classList.toggle('clicked', config.isPaused);
     }
-    initSimulation();
+    await initSimulation();
   });
 
   // Pause button
