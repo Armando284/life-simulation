@@ -79,7 +79,7 @@ const respawnFood = () => {
 async function initSimulation() {
   console.clear()
   creatures.length = 0;
-  const trainedModel = await fetch('./model.json')
+  const trainedModel = await fetch('../model/model.json')
     .then((response) => response.json())
     .then((json) => json)
   console.log(trainedModel)

@@ -1,100 +1,96 @@
-# Life Simulation with JavaScript and Canvas
+# Evolutionary Neural Network Simulation
 
-This project is a simulation built with vanilla JavaScript and Canvas, representing a virtual society where each "Sim" has genetic interests, makes decisions, and lives a limited life while facing challenges like studying, working, finding a partner, and raising offspring.  
+![Simulation Preview](./assets/simulation-trained-gen-0.PNG)
 
----
+This project simulates natural selection using neural networks, where virtual creatures evolve movement strategies to survive and reproduce in a 2D environment. Built with vanilla JavaScript and Canvas, it demonstrates how simple neural networks can develop complex behaviors through genetic algorithms.
 
-## Features
+## Key Features
 
-- **Dynamic longevity**: Each Sim can live up to 100 years, with increasing probabilities of dying over time.
-- **Genetic interests**: Sims inherit genetic values that determine their interest in studying and working.
-- **Education and work**: Sims can study to improve their job opportunities, but they must balance these activities based on their interests and economic needs.
-- **Relationships and reproduction**: Sims seek partners based on criteria such as education, income, and compatibility, and they can reproduce to extend their lineage.
-- **Random events**: Unexpected events like illnesses or changes in interests add an element of unpredictability.
-- **Economic dynamics**: Each Sim has financial needs that must be met through work or parental support.
+- **Neural Network Brains**: Each creature has a feedforward neural network that processes sensory inputs
+- **Evolutionary Mechanics**:
+  - Selection: Only creatures reaching the right side can reproduce
+  - Mutation: 6% chance of neural network mutations during reproduction
+  - Fitness: Based on distance traveled and energy conservation
+- **Environmental Factors**:
+  - Food sources that replenish energy
+  - Obstacles that must be navigated
+- **Visualization**: Real-time rendering of creature movements and sensor inputs
 
----
+## Simulation Rules
 
-## Simulator Rules
+### Creature Behavior
+- Inputs: Distance sensors (front, left, right), hunger level, energy level
+- Outputs: Movement directions (up, down, left, right)
+- Energy system: Movement consumes energy, eating food replenishes it
 
-### 1. General
-- Each Sim has a maximum life expectancy of 100 years.
-- The probability of death increases incrementally each year.
+### Evolutionary Process
+1. Initial random population (100 creatures)
+2. Each generation lasts 2000 frames
+3. Creatures reaching the right side reproduce
+4. Offspring inherit neural networks with possible mutations
+5. Process repeats for 50+ generations
 
-### 2. Education
-- Sims can study at school, increasing their education level each year.
-- Studying and working simultaneously requires a high interest in working (>70).
+## Technical Implementation
 
-### 3. Work
-- Sims can start working at the age of 18.
-- Income depends on their education level and determines if they can cover their living expenses.
+- **Neural Network**:
+  - Architecture: [5, 16, 16, 4] (input, hidden, output)
+  - Activation: Leaky ReLU (hidden), Linear (output)
+  - Dropout: 20% for regularization
+- **Physics**:
+  - Basic collision detection and response
+  - Energy-based movement constraints
 
-### 4. Relationships and Reproduction
-- Sims seek partners starting at the age of 20.
-- Couples have requirements regarding education and income to be compatible.
-- Couples can have children if they have sufficient savings.
+## Getting Started
 
-### 5. Genetics
-- Interests in studying and working are genetic values inherited with random variations.
-- These interests influence the Sim’s decisions throughout their life.
+### Requirements
+- Modern browser (Chrome/Firefox recommended)
+- No dependencies - pure JavaScript
 
----
-
-## Project Requirements
-
-- **Modern browser** with Canvas support.
-- **Vanilla JavaScript** (no external libraries).
-
----
-
-## Installation and Usage
-
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/Armando284/life-simulation.git
-   cd life-simulation
-   ```
-
-2. **Open the `index.html` file**:
-   Simply open the file in a browser to run the simulation.
-
-3. **Configure initial parameters**:
-   You can adjust initial variables like population size, probabilities, and costs in the `config.js` file.
-
----
-
-## Project Structure
-
-```plaintext
-life-simulation/
-│
-├── index.html        # Basic simulator interface.
-├── main.js           # Core simulation logic.
-├── sim.js            # Class to handle Sim entities.
-├── config.js         # Initial configurations (population, costs, etc.).
-├── style.css         # Basic styles for the canvas.
-└── README.md         # Project documentation.
+### Installation
+```bash
+git clone https://github.com/yourusername/neural-evolution.git
+cd neural-evolution
 ```
 
----
+### Running
+1. Open `index.html` in your browser
+2. Watch generations evolve automatically
+3. Use debug mode (set `DEBUG_MODE = true`) to see sensor inputs
 
-## Future Ideas
+## Project Structure
+```
+neural-evolution/
+├── index.html        # Main entry point
+├── js/
+│   ├── creature.js   # Creature class with neural network
+│   ├── food.js       # Food source implementation
+│   ├── nn.js         # Neural network implementation
+│   ├── simulation.js # Main simulation loop
+│   └── utils.js      # Helper functions
+├── css/
+│   └── style.css     # Basic styling
+└── assets/           # Optional image assets
+```
 
-- **Graphical interface**: Add buttons and menus to pause/resume the simulation or adjust parameters in real time.
-- **Complex event system**: Introduce more random events that affect Sims, such as natural disasters or technological advancements.
-- **Genetic evolution**: Implement more advanced logic for genetic inheritance and its long-term impact.
-- **Statistics**: Display data visualizations such as average age, income, or education levels.
+## Configuration Options
+Modify `simulation.js` to adjust:
+- Population size (`initialPopulationSize`)
+- Mutation rate (`mutationRate`)
+- Food distribution (`maxFoodAmount`)
+- Generation length (`generationLength`)
 
----
+## Future Enhancements
+- Add predators to create more evolutionary pressure
+- Implement more complex environments with varying terrain
+- Add sexual reproduction with gene crossover
+- Visualize neural network connections in real-time
+- Export/import successful genomes
 
-## Contributions
-
-Contributions are welcome! If you have ideas to improve the simulator, please open an *issue* or submit a *pull request*.  
-
----
+## Learning Resources
+This project demonstrates:
+- Neuroevolution (combining NNs with genetic algorithms)
+- Simple reinforcement learning
+- Emergent behavior from simple rules
 
 ## License
-
-This project is licensed under the MIT License. You are free to use, modify, and distribute it. 😊
-
---- 
+MIT License - free for educational and personal use
